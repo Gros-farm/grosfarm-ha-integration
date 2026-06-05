@@ -1,0 +1,26 @@
+Grosfarm Home Assistant Integration — Proprietary License
+
+Copyright (c) 2026 Grosfarm. All rights reserved.
+
+This software and the accompanying files (the "Software") are the proprietary
+and confidential property of Grosfarm. The Software is distributed solely to
+enable installation and use of the Grosfarm Home Assistant integration with the
+Grosfarm service.
+
+Permission is granted to download and install the Software for the purpose of
+operating it with Home Assistant. No other rights are granted. Without the prior
+written permission of Grosfarm you may NOT:
+
+  * copy, redistribute, sublicense, sell, or host the Software;
+  * modify, adapt, translate, or create derivative works of the Software;
+  * reverse engineer, decompile, or disassemble the Software, except to the
+    extent this restriction is prohibited by applicable law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For licensing inquiries, contact Grosfarm.

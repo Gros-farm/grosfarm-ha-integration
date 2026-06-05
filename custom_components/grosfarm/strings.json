@@ -1,0 +1,155 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Grosfarm indicator",
+        "description": "What are you measuring?",
+        "menu_options": {
+          "heating": "Temperature (sensor; optional heater relay)",
+          "humidifying": "Humidity (sensor; optional humidifier or dehumidifier)",
+          "lighting": "Lighting (illuminance sensor; optional grow-lamp relay)",
+          "monitoring": "Other indicator (sensor only — telemetry to the Grosfarm cloud)",
+          "cloud": "Gros.farm cloud connection (links this HAOS to a cloud account)"
+        }
+      },
+      "heating": {
+        "title": "Temperature indicator",
+        "description": "Pick the area and the temperature sensor. Adding a heater relay turns this into a closed-loop control zone; leave it blank for telemetry only. Per-phase setpoints are pushed down by the Grosfarm cloud — at install we seed home = 22°C so the zone is usable right away.",
+        "data": {
+          "name": "Indicator name",
+          "area_id": "Area (greenhouse / growbox / room)",
+          "target_sensor": "Temperature sensor",
+          "heater": "Heater relay (optional — leave blank for sensor-only)"
+        }
+      },
+      "humidifying": {
+        "title": "Humidity indicator",
+        "description": "Pick the area and the humidity sensor. Adding a humidifier/dehumidifier turns this into a closed-loop control zone; leave it blank for telemetry only. Target humidity is pushed down by the Grosfarm cloud; at install we seed 60%.",
+        "data": {
+          "name": "Indicator name",
+          "area_id": "Area (greenhouse / growbox / room)",
+          "humidity_sensor": "Humidity sensor",
+          "humidifier": "Humidifier or dehumidifier (optional — leave blank for sensor-only)",
+          "humidifier_device_class": "Device kind (only matters if the device above is picked)"
+        }
+      },
+      "lighting": {
+        "title": "Lighting",
+        "description": "Pick the area, a light sensor (PPFD/lux/DLI), the kind of the sensor reading, and (optional) the grow-lamp relay. Local DLI controller integrates readings, decides when to switch the lamp based on the mode + target_dli pushed by the cloud.",
+        "data": {
+          "name": "Indicator name",
+          "area_id": "Area (greenhouse / growbox / room)",
+          "illuminance_sensor": "Light sensor",
+          "sensor_kind": "Sensor reading kind",
+          "light": "Lamp relay (optional — leave blank for sensor-only)"
+        }
+      },
+      "lighting_lamp_type": {
+        "title": "Lamp type",
+        "description": "Used to convert lux readings into PPFD (µmol/m²/s).",
+        "data": {
+          "lamp_type": "Lamp type"
+        }
+      },
+      "monitoring": {
+        "title": "Other indicator",
+        "description": "Pick the area and any sensor (CO2, soil moisture, EC, pH, light, ...). The reading is forwarded to the Grosfarm cloud — no local control loop.",
+        "data": {
+          "name": "Indicator name",
+          "area_id": "Area (greenhouse / growbox / room)",
+          "sensor": "Sensor"
+        }
+      },
+      "cloud": {
+        "title": "Gros.farm cloud connection",
+        "description": "Links this HAOS to a Gros.farm cloud account. Setpoints for the indicators you've added are pushed in over a long-lived WebSocket; sensor readings are streamed back as telemetry. For a local mock running on a dev machine the URL is usually `http://DEV-MACHINE-LAN-IP:8765`.",
+        "data": {
+          "base_url": "Cloud URL",
+          "login": "Login",
+          "password": "Password",
+          "api_key": "API key"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This sensor (and actuator, if any) is already wired to a Grosfarm indicator, or this cloud account is already linked."
+    },
+    "error": {
+      "heater_already_used": "This relay is already controlled by another Grosfarm indicator.",
+      "humidifier_already_used": "This humidifier is already controlled by another Grosfarm indicator.",
+      "light_already_used": "This lamp relay is already controlled by another Grosfarm indicator.",
+      "invalid_auth": "Cloud rejected the login / password / api_key.",
+      "cannot_connect": "Cannot reach the cloud URL."
+    }
+  },
+  "options": {
+    "step": {
+      "presets": {
+        "title": "Per-phase temperatures",
+        "description": "Leave a field blank to keep its current value or to leave the phase unconfigured. Changes are pushed to the underlying thermostat immediately.",
+        "data": {
+          "away_temp": "Away (phase 1, lowest)",
+          "eco_temp": "Eco (phase 2)",
+          "sleep_temp": "Sleep (phase 3)",
+          "home_temp": "Home (phase 4)",
+          "comfort_temp": "Comfort (phase 5)",
+          "activity_temp": "Activity (phase 6, highest)"
+        }
+      },
+      "humidity": {
+        "title": "Target humidity",
+        "description": "The single setpoint the humidifier (or dehumidifier) tries to keep. The cloud pushes the right value per growth phase once linking is set up.",
+        "data": {
+          "target_humidity": "Target humidity (%)"
+        }
+      },
+      "sensor_only": {
+        "title": "Sensor-only indicator",
+        "description": "Nothing to configure locally — the cloud receives readings from the sensor wired at install."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "dli_today": { "name": "DLI today" },
+      "target_dli": { "name": "Target DLI" },
+      "lamp_on_minutes_today": { "name": "Lamp on (today)" },
+      "lighting_status": { "name": "Status" },
+      "lighting_mode": { "name": "Mode" },
+      "monitored_value": { "name": "Monitored value" },
+      "cloud_connection": {
+        "name": "Cloud connection",
+        "state": {
+          "connected": "Connected",
+          "autonomous": "Autonomous (offline)"
+        }
+      },
+      "cloud_setpoints_version": { "name": "Setpoints version" }
+    }
+  },
+  "selector": {
+    "humidifier_device_class": {
+      "options": {
+        "humidifier": "Humidifier (adds moisture)",
+        "dehumidifier": "Dehumidifier (removes moisture)"
+      }
+    },
+    "sensor_kind": {
+      "options": {
+        "ppfd": "PPFD (µmol/m²/s)",
+        "lux": "lux",
+        "dli": "DLI (mol/m²·day, experimental)"
+      }
+    },
+    "lamp_type": {
+      "options": {
+        "led": "LED",
+        "hps": "HPS (high-pressure sodium)",
+        "mh": "Metal halide",
+        "fluorescent": "Fluorescent",
+        "incandescent": "Incandescent",
+        "sunlight": "Sunlight"
+      }
+    }
+  }
+}

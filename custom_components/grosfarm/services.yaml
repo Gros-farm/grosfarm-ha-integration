@@ -1,0 +1,14 @@
+calibrate_lamp:
+  name: Calibrate lamp PPFD
+  description: >-
+    Запускает автоматическую калибровку лампы в lighting-зоне: снимает базовый
+    PPFD, включает реле, ждёт warm-up (зависит от типа лампы), снимает PPFD с
+    лампой, сохраняет разницу как CONF_LAMP_PPFD.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: ID config-entry зоны досветки.
+      required: true
+      example: "01HXYZ..."
+      selector:
+        text:

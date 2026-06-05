@@ -1,0 +1,35 @@
+default_language_version:
+  python: python3.12
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # mypy runs from the project virtualenv so that `homeassistant` imports
+  # resolve properly. Run `python3.12 -m venv .venv && .venv/bin/pip install
+  # -e ".[dev]"` once before relying on pre-commit.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (project venv)
+        language: system
+        entry: .venv/bin/mypy
+        types_or: [python]
+        files: ^custom_components/grosfarm/
+        pass_filenames: true
+
+  # hassfest validates manifest.json, strings.json, translations and services.yaml.
+  # Runs the official ghcr.io/home-assistant/hassfest image so we don't need to
+  # mirror HA core's dev environment locally. See scripts/run-hassfest.sh.
+  - repo: local
+    hooks:
+      - id: hassfest
+        name: hassfest (HA manifest/strings/translations validator)
+        language: system
+        entry: scripts/run-hassfest.sh
+        pass_filenames: false
+        files: ^custom_components/grosfarm/(manifest\.json|strings\.json|translations/|services\.yaml)$

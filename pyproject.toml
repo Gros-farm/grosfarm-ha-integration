@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grosfarm-ha-integration"
+version = "0.0.1"
+description = "Grosfarm — Home Assistant integration for greenhouse / growbox controllers."
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-homeassistant-custom-component>=0.13.200",
+  "ruff>=0.7,<0.9",
+  "mypy>=1.13",
+  "pre-commit>=4.0",
+]
+
+# This is a Home Assistant `custom_components` project — nothing in the repo is
+# meant to be installed as a Python package. The empty py-modules list keeps
+# `pip install -e .[dev]` happy without trying to package custom_components.
+[tool.setuptools]
+py-modules = []
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["custom_components", "tests"]
+
+[tool.ruff.lint]
+# Subset modelled on home-assistant/core. Keep it tight but not exhaustive.
+select = [
+  "E", "W", "F",          # pycodestyle + pyflakes
+  "I",                    # isort
+  "B",                    # bugbear
+  "C4",                   # comprehensions
+  "UP",                   # pyupgrade
+  "RUF",                  # ruff-specific
+  "ASYNC",                # async correctness
+  "SIM",                  # simplifications
+  "PIE", "PT", "PL",      # extras + pytest + pylint subset
+  "TID", "TRY", "N",      # tidy imports, try/except, naming
+  "D",                    # docstrings (pydocstyle)
+]
+ignore = [
+  "D203", "D213",         # incompatible docstring rules
+  "PLR0913",              # too many args (HA setup signatures)
+  "TRY003",               # long exception messages — fine for us
+  "D100", "D104",         # missing module/package docstrings — too noisy at this stage
+  "RUF001", "RUF002", "RUF003",  # ambiguous Cyrillic letters — Russian is the project language
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004", "S101", "ASYNC", "PT004"]
+# scripts/ holds dev-ops glue (deploy backup builder, supervisor WS probe,
+# health checks). They're throwaway-ish — lint them loosely.
+"scripts/**" = ["D", "PLR2004", "PIE810", "UP017", "I001", "E501", "PT018"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["custom_components/grosfarm"]
+exclude = ["^tests/", "^ha-core/"]
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "pytest_homeassistant_custom_component.*", "voluptuous.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
+filterwarnings = [
+  "ignore::DeprecationWarning:homeassistant.*",
+  "ignore::DeprecationWarning:pytest_homeassistant_custom_component.*",
+]
