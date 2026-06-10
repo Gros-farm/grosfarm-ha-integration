@@ -63,7 +63,12 @@ ignore = [
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.12"
+# Target 3.13 even though runtime/ruff stay at 3.12 (see requires-python): recent
+# Home Assistant requires Python >=3.13 and its own sources use type-parameter
+# defaults (PEP 696, e.g. config_entries.py). mypy follows those imports, and with
+# a <3.13 target it rejects that syntax as a hard error — which broke the py3.13 CI
+# leg (latest HA installs there) while the py3.12 leg (older HA) stayed green.
+python_version = "3.13"
 strict = true
 warn_unreachable = true
 files = ["custom_components/grosfarm"]
