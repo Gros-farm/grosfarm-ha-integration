@@ -3,6 +3,7 @@ name: Validate
 on:
   push:
   pull_request:
+  workflow_dispatch:
   schedule:
     # Weekly run catches breakage from new HA / HACS releases.
     - cron: "0 6 * * 1"
@@ -17,6 +18,10 @@ jobs:
 
   hacs:
     name: HACS
+    # Not publishing to HACS yet. hacs/action's repo-level checks (description,
+    # topics) fail on a not-yet-prepared repo, so this runs on demand only for now.
+    # Drop the `if` (or add push/pull_request) once we start preparing the HACS PR.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
