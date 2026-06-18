@@ -362,8 +362,13 @@ class CloudConnectionSensor(_GrosfarmCloudBase):
 
     @property
     def native_value(self) -> str:
-        """Connected при наличии связи с облаком, иначе autonomous (офлайн-режим)."""
-        return "connected" if self._coordinator.is_connected else "autonomous"
+        """Connected пока WS-линк жив, иначе autonomous (офлайн-режим).
+
+        Смотрим на `is_cloud_live` (текущее состояние сокета), а НЕ на
+        `is_connected` (одноразовый bootstrap-флаг) — иначе индикатор залипал бы
+        на «connected» после падения облака.
+        """
+        return "connected" if self._coordinator.is_cloud_live else "autonomous"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

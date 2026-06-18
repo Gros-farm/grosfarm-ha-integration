@@ -101,13 +101,20 @@ def fake_stream() -> Generator[dict[str, Any], None, None]:
         def __init__(self, **kwargs: Any) -> None:
             captured["on_setpoints"] = kwargs["on_setpoints"]
             captured["on_command"] = kwargs["on_command"]
+            captured["on_connection_change"] = kwargs.get("on_connection_change")
             captured["telemetry"] = []
+            captured["stream"] = self
+            # Фейк представляет работающий канал: после start() линк «жив».
+            self.is_connected = False
 
         def start(self) -> None:
-            pass
+            self.is_connected = True
+            cb = captured.get("on_connection_change")
+            if cb is not None:
+                cb(True)
 
         async def stop(self) -> None:
-            pass
+            self.is_connected = False
 
         def update_known_version(self, version: int) -> None:
             pass
@@ -526,6 +533,47 @@ async def test_command_set_device_state_refuses_non_switch_domain(
     await hass.async_block_till_done()
 
     assert calls == []
+    await _stop_all_cloud_coordinators(hass)
+
+
+async def test_connection_sensor_reflects_live_link(
+    hass: HomeAssistant,
+    stub_spawns,
+    fake_cloud_client: MagicMock,
+    fake_stream: dict[str, Any],
+) -> None:
+    """Сенсор связи следует за live WS-линком, а не за bootstrap-флагом.
+
+    Регрессия: `is_connected` залипал на True после первой регистрации, и
+    CloudConnectionSensor показывал «connected» даже когда мок выключен. Теперь
+    сенсор смотрит на `is_cloud_live` (открыт ли сокет сейчас), а падение линка
+    дёргает on_connection_change → сенсор перерисовывается.
+    """
+    from custom_components.grosfarm.sensor import CloudConnectionSensor
+
+    heating = _make_heating_entry(hass)
+    cloud = _make_cloud_entry(hass)
+    await _setup_both(hass, heating, cloud)
+
+    coordinator = hass.data[DOMAIN][_CLOUD_KEY][cloud.entry_id]
+    sensor = CloudConnectionSensor(coordinator, cloud)
+
+    # Линк поднят (fake stream.start выставил is_connected=True) → connected.
+    assert coordinator.is_cloud_live is True
+    assert sensor.native_value == "connected"
+
+    # Мок выключили: WS отвалился. Bootstrap-флаг не сбрасывается, но live-линка
+    # больше нет → индикатор обязан показать autonomous, а не залипнуть.
+    stream = fake_stream["stream"]
+    stream.is_connected = False
+    on_change = fake_stream["on_connection_change"]
+    assert on_change is not None
+    on_change(False)
+
+    assert coordinator.is_connected is True
+    assert coordinator.is_cloud_live is False
+    assert sensor.native_value == "autonomous"
+
     await _stop_all_cloud_coordinators(hass)
 
 
