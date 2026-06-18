@@ -135,8 +135,24 @@ class GrosfarmCoordinator:
 
     @property
     def is_connected(self) -> bool:
-        """Connected = authenticated + registered (WS-канал может реконнектиться)."""
+        """Bootstrapped = authenticated + registered хотя бы раз.
+
+        Внутренний флаг для retry/reregister-петель: True означает «мы уже
+        прошли bootstrap, дальше живём на WS-реконнекте». НЕ отражает текущее
+        состояние линка — для индикатора связи в UI используй `is_cloud_live`.
+        """
         return self._registration is not None and self._client is not None
+
+    @property
+    def is_cloud_live(self) -> bool:
+        """Реальная live-связь с облаком прямо сейчас: WS-канал открыт.
+
+        В отличие от `is_connected` (одноразовый bootstrap-флаг, который не
+        сбрасывается), это отражает текущее состояние сокета. После падения
+        мока линк отваливается и здесь становится False — сенсор связи покажет
+        «autonomous», а не залипнет на «connected».
+        """
+        return self._stream is not None and self._stream.is_connected
 
     @property
     def setpoints_version(self) -> int:
@@ -164,6 +180,16 @@ class GrosfarmCoordinator:
                 cb()
             except Exception:
                 _LOGGER.exception("listener raised")
+
+    @callback
+    def _on_stream_connection_change(self, connected: bool) -> None:
+        """WS-линк поднялся/отвалился — перерисовать сенсоры связи.
+
+        Без этого CloudConnectionSensor не узнал бы о падении линка и продолжил
+        бы показывать прежнее значение до следующего setpoints-push'а.
+        """
+        _LOGGER.debug("Cloud WS link %s", "up" if connected else "down")
+        self._notify_listeners()
 
     # ---- lifecycle ----
 
@@ -225,6 +251,7 @@ class GrosfarmCoordinator:
             on_setpoints=self._on_setpoints_update,
             on_command=self._on_command,
             backoff_seconds=RECONNECT_BACKOFF_SECONDS,
+            on_connection_change=self._on_stream_connection_change,
         )
         self._stream.start()
         if self._telemetry_task is None or self._telemetry_task.done():

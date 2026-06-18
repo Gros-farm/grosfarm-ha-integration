@@ -223,6 +223,7 @@ class GrosfarmStream:
         on_setpoints: Callable[[dict[str, Any]], Awaitable[None]],
         on_command: Callable[[dict[str, Any]], Awaitable[None]],
         backoff_seconds: tuple[int, ...] = (1, 2, 5, 10, 30),
+        on_connection_change: Callable[[bool], None] | None = None,
     ) -> None:
         """Сохранить колбэки/URL; ничего не подключать до start()."""
         self._session = session
@@ -230,12 +231,39 @@ class GrosfarmStream:
         self._token_provider = access_token_provider
         self._on_setpoints = on_setpoints
         self._on_command = on_command
+        self._on_connection_change = on_connection_change
         self._backoff = backoff_seconds
         self._current_version = current_version
         self._ws: aiohttp.ClientWebSocketResponse | None = None
         self._task: asyncio.Task[None] | None = None
         self._stopping = False
+        self._connected = False
         self._send_lock = asyncio.Lock()
+
+    @property
+    def is_connected(self) -> bool:
+        """WS-канал открыт прямо сейчас.
+
+        False во время reconnect/backoff — то есть когда облако недоступно. Это
+        живой сигнал связи (в отличие от «забутстрапились однажды»): после падения
+        мока сокет дропается и здесь снова False, пока линк не поднимется.
+        """
+        return self._ws is not None and not self._ws.closed
+
+    def _notify_connection(self, connected: bool) -> None:
+        """Дёрнуть on_connection_change только на смене состояния линка.
+
+        Во время остановки (`stop()`) колбэк не зовём — слушатели уже снимаются.
+        """
+        if connected == self._connected:
+            return
+        self._connected = connected
+        if self._stopping or self._on_connection_change is None:
+            return
+        try:
+            self._on_connection_change(connected)
+        except Exception:
+            _LOGGER.exception("on_connection_change raised")
 
     def start(self) -> None:
         """Запустить фоновую coroutine, поддерживающую WS-соединение."""
@@ -285,6 +313,7 @@ class GrosfarmStream:
                         }
                     )
                     attempt = 0
+                    self._notify_connection(True)
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             await self._dispatch(msg.json())
@@ -301,6 +330,7 @@ class GrosfarmStream:
                 _LOGGER.warning("WS error: %s", exc)
             finally:
                 self._ws = None
+                self._notify_connection(False)
             if self._stopping:
                 return  # type: ignore[unreachable]
             delay = self._backoff[min(attempt, len(self._backoff) - 1)]
