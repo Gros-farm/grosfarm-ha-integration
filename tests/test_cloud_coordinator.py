@@ -512,27 +512,82 @@ async def test_command_set_device_state_calls_switch_service(
     await _stop_all_cloud_coordinators(hass)
 
 
-async def test_command_set_device_state_refuses_non_switch_domain(
+def _register_light_capture(hass: HomeAssistant) -> list[tuple[str, dict]]:
+    """Зарегистрировать пустые turn_on/turn_off на light-домене, ловить вызовы."""
+    calls: list[tuple[str, dict]] = []
+
+    async def _handler(call: Any) -> None:
+        calls.append((call.service, dict(call.data)))
+
+    hass.services.async_register("light", "turn_on", _handler)
+    hass.services.async_register("light", "turn_off", _handler)
+    return calls
+
+
+async def test_command_set_device_state_calls_light_service(
     hass: HomeAssistant,
     stub_spawns,
     fake_cloud_client: MagicMock,
     fake_stream: dict[str, Any],
 ) -> None:
-    """Облако не может дёрнуть произвольный домен (только switch разрешён)."""
+    """command.set_device_state для light.* дёргает light.turn_on/turn_off."""
+    hass.states.async_set(
+        "light.grow", "off", {"supported_color_modes": ["rgb"]}
+    )
     cloud = _make_cloud_entry(hass)
     await _setup_both(hass, cloud)
-    calls = _register_switch_capture(hass)
+    calls = _register_light_capture(hass)
 
     await fake_stream["on_command"](
         {
             "type": "command.set_device_state",
             "command_id": "c3",
-            "payload": {"device_external_id": "light.living_room", "state": "on"},
+            "payload": {"device_external_id": "light.grow", "state": "on"},
+        }
+    )
+    await fake_stream["on_command"](
+        {
+            "type": "command.set_device_state",
+            "command_id": "c4",
+            "payload": {"device_external_id": "light.grow", "state": "off"},
         }
     )
     await hass.async_block_till_done()
 
-    assert calls == []
+    services = [c[0] for c in calls]
+    assert "turn_on" in services
+    assert "turn_off" in services
+    # on → полный белый (rgb-лампа): brightness_pct=100 + rgb_color.
+    on_call = next(c for c in calls if c[0] == "turn_on")
+    assert on_call[1].get("entity_id") == "light.grow"
+    assert on_call[1].get("brightness_pct") == 100
+    assert on_call[1].get("rgb_color") == [255, 255, 255]
+    await _stop_all_cloud_coordinators(hass)
+
+
+async def test_command_set_device_state_refuses_unsupported_domain(
+    hass: HomeAssistant,
+    stub_spawns,
+    fake_cloud_client: MagicMock,
+    fake_stream: dict[str, Any],
+) -> None:
+    """Облако может дёрнуть только switch/light — прочие домены игнорируются."""
+    cloud = _make_cloud_entry(hass)
+    await _setup_both(hass, cloud)
+    switch_calls = _register_switch_capture(hass)
+    light_calls = _register_light_capture(hass)
+
+    await fake_stream["on_command"](
+        {
+            "type": "command.set_device_state",
+            "command_id": "c5",
+            "payload": {"device_external_id": "fan.exhaust", "state": "on"},
+        }
+    )
+    await hass.async_block_till_done()
+
+    assert switch_calls == []
+    assert light_calls == []
     await _stop_all_cloud_coordinators(hass)
 
 

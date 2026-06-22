@@ -539,3 +539,78 @@ async def test_status_push_to_cloud_coordinator(hass: HomeAssistant) -> None:
     assert pushed_entry_id == entry.entry_id
     assert payload["status"] == "ok"
     assert payload["mode"] == LIGHTING_MODE_OFF
+
+
+# ---------------------------------------------------------------------------
+# light.* лампа (диммируемый свет) — полный белый
+# ---------------------------------------------------------------------------
+
+
+async def test_light_domain_lamp_full_white_on_continuous(
+    hass: HomeAssistant,
+) -> None:
+    """Лампа-light в indoor_continuous включается на полную яркость + белый."""
+    hass.states.async_set("sensor.fake_lux", "0", {})
+    hass.states.async_set(
+        "light.fake_lamp", "off", {"supported_color_modes": ["rgb"]}
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Light",
+        data={
+            CONF_PRESET_TYPE: PRESET_TYPE_LIGHTING,
+            CONF_NAME: "Light",
+            CONF_ILLUMINANCE_SENSOR: "sensor.fake_lux",
+            CONF_LIGHT: "light.fake_lamp",
+            CONF_SENSOR_KIND: SENSOR_KIND_PPFD,
+            CONF_LIGHTING_MODE: LIGHTING_MODE_INDOOR_CONTINUOUS,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    calls: list[tuple[str, dict]] = []
+
+    async def _h(call) -> None:
+        calls.append((call.service, dict(call.data)))
+        hass.states.async_set(
+            call.data["entity_id"],
+            "on" if call.service == "turn_on" else "off",
+            {"supported_color_modes": ["rgb"]},
+        )
+
+    hass.services.async_register("light", "turn_on", _h)
+    hass.services.async_register("light", "turn_off", _h)
+
+    controller = GrosfarmLightController(hass, entry)
+    await controller._tick_now(_utc(2026, 5, 21, 12, 0))
+    await hass.async_block_till_done()
+
+    on = next(c for c in calls if c[0] == "turn_on")
+    assert on[1]["entity_id"] == "light.fake_lamp"
+    assert on[1]["brightness_pct"] == 100
+    assert on[1]["rgb_color"] == [255, 255, 255]
+
+
+def test_build_lamp_on_payload_variants() -> None:
+    """build_lamp_on_payload подбирает яркость/цвет по supported_color_modes."""
+    from types import SimpleNamespace
+
+    from custom_components.grosfarm.light_controller import build_lamp_on_payload
+
+    def _st(modes: list[str]) -> SimpleNamespace:
+        return SimpleNamespace(attributes={"supported_color_modes": modes})
+
+    assert build_lamp_on_payload(_st(["rgb"])) == {
+        "brightness_pct": 100,
+        "rgb_color": [255, 255, 255],
+    }
+    assert build_lamp_on_payload(_st(["onoff"])) == {}
+    assert build_lamp_on_payload(_st(["brightness"])) == {"brightness_pct": 100}
+    assert build_lamp_on_payload(_st(["color_temp"])) == {
+        "brightness_pct": 100,
+        "color_temp_kelvin": 4000,
+    }
+    assert build_lamp_on_payload(_st(["rgbw"])) == {
+        "brightness_pct": 100,
+        "rgbw_color": [0, 0, 0, 255],
+    }

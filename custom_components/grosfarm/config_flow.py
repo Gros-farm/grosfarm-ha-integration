@@ -185,9 +185,11 @@ SCHEMA_LIGHTING = vol.Schema(
                 translation_key=CONF_SENSOR_KIND,
             )
         ),
-        # Опционально: реле лампы. Без него — sensor-only zone, телеметрия в облако.
+        # Опционально: лампа досветки. Диммируемый свет (WLED/Tuya/Zigbee RGBW)
+        # ИЛИ простое реле/розетка. light.* controller гонит на полную яркость
+        # (белый), switch.* — вкл/выкл. Пусто → sensor-only zone, телеметрия в облако.
         vol.Optional(CONF_LIGHT): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain=Platform.SWITCH)
+            selector.EntitySelectorConfig(domain=[Platform.LIGHT, Platform.SWITCH])
         ),
     }
 )

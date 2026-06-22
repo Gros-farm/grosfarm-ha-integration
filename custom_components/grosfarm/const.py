@@ -66,7 +66,7 @@ DEVICE_CLASS_TO_INDICATOR: Final[dict[str, str]] = {
 
 # --- Lighting preset (entry.data keys) ---
 CONF_ILLUMINANCE_SENSOR: Final = "illuminance_sensor"
-CONF_LIGHT: Final = "light"  # switch entity (lamp relay), optional
+CONF_LIGHT: Final = "light"  # lamp actuator: light.* (dimmable) or switch.* (relay), optional
 CONF_SENSOR_KIND: Final = "sensor_kind"  # "ppfd" | "lux" | "dli"
 # Для kind=lux: led/hps/mh/fluorescent/incandescent/sunlight.
 CONF_LAMP_TYPE: Final = "lamp_type"
