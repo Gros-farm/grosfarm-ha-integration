@@ -551,9 +551,7 @@ async def test_light_domain_lamp_full_white_on_continuous(
 ) -> None:
     """Лампа-light в indoor_continuous включается на полную яркость + белый."""
     hass.states.async_set("sensor.fake_lux", "0", {})
-    hass.states.async_set(
-        "light.fake_lamp", "off", {"supported_color_modes": ["rgb"]}
-    )
+    hass.states.async_set("light.fake_lamp", "off", {"supported_color_modes": ["rgb"]})
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Light",

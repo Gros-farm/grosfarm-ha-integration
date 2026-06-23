@@ -531,9 +531,7 @@ async def test_command_set_device_state_calls_light_service(
     fake_stream: dict[str, Any],
 ) -> None:
     """command.set_device_state для light.* дёргает light.turn_on/turn_off."""
-    hass.states.async_set(
-        "light.grow", "off", {"supported_color_modes": ["rgb"]}
-    )
+    hass.states.async_set("light.grow", "off", {"supported_color_modes": ["rgb"]})
     cloud = _make_cloud_entry(hass)
     await _setup_both(hass, cloud)
     calls = _register_light_capture(hass)
