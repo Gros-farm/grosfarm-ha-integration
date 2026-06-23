@@ -7,7 +7,7 @@
         "menu_options": {
           "heating": "Temperature (sensor; optional heater relay)",
           "humidifying": "Humidity (sensor; optional humidifier or dehumidifier)",
-          "lighting": "Lighting (illuminance sensor; optional grow-lamp relay)",
+          "lighting": "Lighting (illuminance sensor; optional grow lamp — light or relay)",
           "monitoring": "Other indicator (sensor only — telemetry to the Grosfarm cloud)",
           "cloud": "Gros.farm cloud connection (links this HAOS to a cloud account)"
         }
@@ -35,13 +35,13 @@
       },
       "lighting": {
         "title": "Lighting",
-        "description": "Pick the area, a light sensor (PPFD/lux/DLI), the kind of the sensor reading, and (optional) the grow-lamp relay. Local DLI controller integrates readings, decides when to switch the lamp based on the mode + target_dli pushed by the cloud.",
+        "description": "Pick the area, a light sensor (PPFD/lux/DLI), the kind of the sensor reading, and (optional) the grow lamp — a dimmable light (driven to full brightness) or a plain relay. Local DLI controller integrates readings, decides when to switch the lamp based on the mode + target_dli pushed by the cloud.",
         "data": {
           "name": "Indicator name",
           "area_id": "Area (greenhouse / growbox / room)",
           "illuminance_sensor": "Light sensor",
           "sensor_kind": "Sensor reading kind",
-          "light": "Lamp relay (optional — leave blank for sensor-only)"
+          "light": "Grow lamp (dimmable light or relay; optional — leave blank for sensor-only)"
         }
       },
       "lighting_lamp_type": {
@@ -77,7 +77,7 @@
     "error": {
       "heater_already_used": "This relay is already controlled by another Grosfarm indicator.",
       "humidifier_already_used": "This humidifier is already controlled by another Grosfarm indicator.",
-      "light_already_used": "This lamp relay is already controlled by another Grosfarm indicator.",
+      "light_already_used": "This lamp is already controlled by another Grosfarm indicator.",
       "invalid_auth": "Cloud rejected the login / password / api_key.",
       "cannot_connect": "Cannot reach the cloud URL."
     }

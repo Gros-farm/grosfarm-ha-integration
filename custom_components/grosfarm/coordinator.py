@@ -514,26 +514,26 @@ class GrosfarmCoordinator:
     async def _apply_device_command(self, payload: dict[str, Any]) -> None:
         """Облако дёрнуло актуатор (например, лампу досветки).
 
-        Payload: {"device_external_id": "switch.lamp", "state": "on"|"off"}.
-        Маппим в `switch.turn_on` / `switch.turn_off`. Если entity_id не из
-        domain `switch` — отказываемся: не лезем в свет/выключатели произвольно.
+        Payload: {"device_external_id": "light.lamp", "state": "on"|"off"}.
+        light.* → light.turn_on на полную яркость/белый (см. async_apply_lamp),
+        switch.* → switch.turn_on/off. Остальные домены — отказ: не лезем в
+        произвольные сущности.
         """
         entity_id = payload.get("device_external_id")
         state = str(payload.get("state", "")).lower()
         if not entity_id or state not in ("on", "off"):
             _LOGGER.warning("set_device_state ignored: %s", payload)
             return
-        if not entity_id.startswith("switch."):
+        if entity_id.split(".", 1)[0] not in ("switch", "light"):
             _LOGGER.warning(
-                "set_device_state for non-switch domain ignored: %s", entity_id
+                "set_device_state for unsupported domain ignored: %s", entity_id
             )
             return
-        service = "turn_on" if state == "on" else "turn_off"
+        from .light_controller import async_apply_lamp
+
         try:
-            await self.hass.services.async_call(
-                "switch", service, {"entity_id": entity_id}, blocking=True
-            )
-            _LOGGER.info("set_device_state %s → %s", entity_id, service)
+            await async_apply_lamp(self.hass, entity_id, state == "on")
+            _LOGGER.info("set_device_state %s → %s", entity_id, state)
         except Exception:
             _LOGGER.exception("set_device_state failed for %s", entity_id)
 
